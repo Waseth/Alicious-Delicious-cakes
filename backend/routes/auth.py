@@ -15,6 +15,7 @@ from utils.helpers import success_response, error_response
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
+# ── Whitelist check ────────────────────────────────────────────────────────
 def _is_valid_admin(email: str, phone: str, name: str, app_config) -> bool:
     """Return True only if email+phone match the admin whitelist."""
     whitelist = app_config.get("ADMIN_WHITELIST", {})
@@ -22,6 +23,7 @@ def _is_valid_admin(email: str, phone: str, name: str, app_config) -> bool:
     if not entry:
         return False
 
+    # normalise phone for comparison
     def _norm(p):
         p = p.strip().replace(" ", "")
         if p.startswith("0"):
@@ -37,6 +39,7 @@ def _is_valid_admin(email: str, phone: str, name: str, app_config) -> bool:
     return name.strip().lower() in allowed
 
 
+# ── Register ───────────────────────────────────────────────────────────────
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
@@ -47,6 +50,7 @@ def register():
     password = data.get("password", "")
     role  = (data.get("role") or "customer").strip().lower()
 
+    # ── Validation ────────────────────────────────────────────────────────
     errors = {}
     if not name:
         errors["name"] = "Name is required."
@@ -62,6 +66,7 @@ def register():
     if errors:
         return error_response("Validation failed.", 422, errors)
 
+    # ── Admin whitelist gate ───────────────────────────────────────────────
     if role == "admin":
         from flask import current_app
         if not _is_valid_admin(email, phone, name, current_app.config):
@@ -69,9 +74,11 @@ def register():
                 "You are not authorised to register as admin.", 403
             )
 
+    # ── Uniqueness ────────────────────────────────────────────────────────
     if User.query.filter_by(email=email).first():
         return error_response("An account with this email already exists.", 409)
 
+    # ── Create user ───────────────────────────────────────────────────────
     pw_hash = bcrypt.generate_password_hash(password).decode("utf-8")
     user = User(
         name=name,
@@ -84,7 +91,8 @@ def register():
     db.session.commit()
 
     token = create_access_token(
-        identity={"user_id": user.id, "role": user.role}
+        identity=str(user.id),
+        additional_claims={"role": user.role},
     )
 
     return success_response(
@@ -94,6 +102,7 @@ def register():
     )
 
 
+# ── Login ──────────────────────────────────────────────────────────────────
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data  = request.get_json(silent=True) or {}
@@ -108,7 +117,8 @@ def login():
         return error_response("Invalid email or password.", 401)
 
     token = create_access_token(
-        identity={"user_id": user.id, "role": user.role}
+        identity=str(user.id),
+        additional_claims={"role": user.role},
     )
 
     return success_response(
@@ -117,11 +127,12 @@ def login():
     )
 
 
+# ── Me ─────────────────────────────────────────────────────────────────────
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
 def me():
-    identity = get_jwt_identity()
-    user = User.query.get(identity.get("user_id"))
+    user_id = get_jwt_identity()          # now a plain string
+    user = User.query.get(int(user_id))
     if not user:
         return error_response("User not found.", 404)
     return success_response(user.to_dict())

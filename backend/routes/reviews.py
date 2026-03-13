@@ -30,7 +30,7 @@ def latest_reviews():
 def create_review():
     from models.user import User
     identity = get_jwt_identity()
-    user     = User.query.get(identity.get("user_id"))
+    user     = User.query.get(int(identity))
 
     data        = request.get_json(silent=True) or {}
     rating      = data.get("rating")

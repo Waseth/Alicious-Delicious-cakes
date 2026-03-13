@@ -1,26 +1,29 @@
 from functools import wraps
 from flask import jsonify
-from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.user import User
 
 
 def admin_required(fn):
-    """Decorator — allows access only to users with role='admin'."""
+    """
+    Decorator — JWT must be valid (handled by @jwt_required, returns 401 if not),
+    then role must be 'admin' (returns 403 if not).
+    """
     @wraps(fn)
+    @jwt_required()          # handles missing/invalid/expired token → 401
     def wrapper(*args, **kwargs):
-        verify_jwt_in_request()
-        identity = get_jwt_identity()
-        user = User.query.get(identity.get("user_id"))
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
         if not user or user.role != "admin":
-            return jsonify({"error": "Admin access required."}), 403
+            return jsonify({"success": False, "error": "Admin access required."}), 403
         return fn(*args, **kwargs)
     return wrapper
 
 
 def customer_or_admin_required(fn):
-    """Decorator — allows any authenticated user."""
+    """Decorator — any authenticated user (JWT validated → 401 if missing)."""
     @wraps(fn)
+    @jwt_required()
     def wrapper(*args, **kwargs):
-        verify_jwt_in_request()
         return fn(*args, **kwargs)
     return wrapper

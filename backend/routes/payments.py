@@ -20,7 +20,7 @@ payments_bp = Blueprint("payments", __name__, url_prefix="/payments")
 
 def _get_current_user():
     from models.user import User
-    return User.query.get(get_jwt_identity().get("user_id"))
+    return User.query.get(int(get_jwt_identity()))
 
 
 def _assert_owns_order(user, order):
@@ -29,6 +29,7 @@ def _assert_owns_order(user, order):
     return None
 
 
+# ── Deposit payment ────────────────────────────────────────────────────────
 @payments_bp.route("/deposit", methods=["POST"])
 @jwt_required()
 def pay_deposit():
@@ -57,6 +58,7 @@ def pay_deposit():
     if not result["success"]:
         return error_response(f"M-Pesa error: {result['error']}", 502)
 
+    # Record pending payment
     payment = Payment(
         order_id=order.id,
         amount=amount,
@@ -76,6 +78,7 @@ def pay_deposit():
     )
 
 
+# ── Balance payment ────────────────────────────────────────────────────────
 @payments_bp.route("/balance", methods=["POST"])
 @jwt_required()
 def pay_balance():
@@ -126,12 +129,14 @@ def pay_balance():
     )
 
 
+# ── M-Pesa callback (no JWT — called by Safaricom) ─────────────────────────
 @payments_bp.route("/mpesa-callback", methods=["POST"])
 def mpesa_callback():
     callback_data = request.get_json(silent=True) or {}
     result = handle_mpesa_callback(callback_data)
 
     if not result.get("success"):
+        # Mark matching pending payment as failed
         checkout_id = result.get("checkout_request_id")
         payment = Payment.query.filter_by(
             mpesa_checkout_request_id=checkout_id, status="pending"
@@ -169,6 +174,7 @@ def mpesa_callback():
     return success_response(message="Payment recorded successfully.")
 
 
+# ── Manual confirmation (dev / admin use) ─────────────────────────────────
 @payments_bp.route("/confirm-mock", methods=["POST"])
 @jwt_required()
 def confirm_mock_payment():
