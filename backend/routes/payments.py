@@ -1,9 +1,3 @@
-"""
-Payment routes
-POST /payments/deposit
-POST /payments/balance
-POST /payments/mpesa-callback  (M-Pesa Daraja callback)
-"""
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -28,8 +22,6 @@ def _assert_owns_order(user, order):
         return error_response("Access denied.", 403)
     return None
 
-
-# ── Deposit payment ────────────────────────────────────────────────────────
 @payments_bp.route("/deposit", methods=["POST"])
 @jwt_required()
 def pay_deposit():
@@ -58,7 +50,6 @@ def pay_deposit():
     if not result["success"]:
         return error_response(f"M-Pesa error: {result['error']}", 502)
 
-    # Record pending payment
     payment = Payment(
         order_id=order.id,
         amount=amount,
@@ -78,7 +69,6 @@ def pay_deposit():
     )
 
 
-# ── Balance payment ────────────────────────────────────────────────────────
 @payments_bp.route("/balance", methods=["POST"])
 @jwt_required()
 def pay_balance():
@@ -129,14 +119,12 @@ def pay_balance():
     )
 
 
-# ── M-Pesa callback (no JWT — called by Safaricom) ─────────────────────────
 @payments_bp.route("/mpesa-callback", methods=["POST"])
 def mpesa_callback():
     callback_data = request.get_json(silent=True) or {}
     result = handle_mpesa_callback(callback_data)
 
     if not result.get("success"):
-        # Mark matching pending payment as failed
         checkout_id = result.get("checkout_request_id")
         payment = Payment.query.filter_by(
             mpesa_checkout_request_id=checkout_id, status="pending"
@@ -174,14 +162,10 @@ def mpesa_callback():
     return success_response(message="Payment recorded successfully.")
 
 
-# ── Manual confirmation (dev / admin use) ─────────────────────────────────
 @payments_bp.route("/confirm-mock", methods=["POST"])
 @jwt_required()
 def confirm_mock_payment():
-    """
-    Development helper — manually confirm a pending payment without
-    waiting for the M-Pesa callback.
-    """
+   
     user = _get_current_user()
     if user.role != "admin":
         return error_response("Admin only.", 403)

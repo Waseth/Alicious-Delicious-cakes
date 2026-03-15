@@ -22,10 +22,24 @@ def validate_rating(rating) -> bool:
 
 
 def normalize_phone(phone: str) -> str:
-    """Convert phone to international format (+254...)."""
-    phone = phone.strip().replace(" ", "")
-    if phone.startswith("0"):
-        return "+254" + phone[1:]
-    if phone.startswith("254"):
-        return "+" + phone
+    """
+    Convert phone number to format Safaricom expects (254XXXXXXXXX)
+    Examples:
+        0798863379 -> 254798863379
+        798863379  -> 254798863379
+        254798863379 -> 254798863379
+    """
+    if not phone:
+        return phone
+
+
+    phone = ''.join(filter(str.isdigit, phone))
+
+
+    if phone.startswith('0'):
+        phone = '254' + phone[1:]
+    
+    elif len(phone) == 9 and phone.startswith('7'):
+        phone = '254' + phone
+
     return phone

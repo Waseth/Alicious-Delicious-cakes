@@ -1,10 +1,10 @@
-"""
-Alicious Delicious Cakes — Flask application factory.
-"""
 import os
+from dotenv import load_dotenv
 from flask import Flask, jsonify
 from config import config_map
 from extensions import db, jwt, bcrypt, cors
+
+load_dotenv()
 
 
 def create_app(config_name: str | None = None) -> Flask:

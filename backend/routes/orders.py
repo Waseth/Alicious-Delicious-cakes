@@ -1,10 +1,3 @@
-"""
-Order routes
-POST  /orders
-GET   /orders/my-orders
-GET   /orders/<id>
-PATCH /orders/<id>/cancel
-"""
 from datetime import datetime, timedelta
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -16,7 +9,7 @@ from utils.helpers import success_response, error_response
 
 orders_bp = Blueprint("orders", __name__, url_prefix="/orders")
 
-DEPOSIT_RATE = 0.50  # 50 %
+DEPOSIT_RATE = 0.50
 
 
 def _get_current_user():
@@ -24,8 +17,6 @@ def _get_current_user():
     identity = get_jwt_identity()
     return User.query.get(int(identity))
 
-
-# ── Create order ───────────────────────────────────────────────────────────
 @orders_bp.route("", methods=["POST"])
 @jwt_required()
 def create_order():
@@ -53,7 +44,6 @@ def create_order():
         if not cake:
             return error_response(f"Cake with id {cake_id} not found.", 404)
 
-        # Always calculate price on backend — never trust frontend
         line_total  = float(cake.base_price) * quantity
         total_price += line_total
 
@@ -83,7 +73,7 @@ def create_order():
         status="order_received",
     )
     db.session.add(order)
-    db.session.flush()  # get order.id before committing
+    db.session.flush()
 
     for oi in order_items:
         oi.order_id = order.id
@@ -98,7 +88,6 @@ def create_order():
     )
 
 
-# ── My orders ──────────────────────────────────────────────────────────────
 @orders_bp.route("/my-orders", methods=["GET"])
 @jwt_required()
 def my_orders():
@@ -120,21 +109,17 @@ def my_orders():
     })
 
 
-# ── Single order ───────────────────────────────────────────────────────────
 @orders_bp.route("/<int:order_id>", methods=["GET"])
 @jwt_required()
 def get_order(order_id):
     user  = _get_current_user()
     order = Order.query.get_or_404(order_id)
 
-    # Customers can only view their own orders; admins see all
     if user.role != "admin" and order.user_id != user.id:
         return error_response("Access denied.", 403)
 
     return success_response(order.to_dict(include_items=True))
 
-
-# ── Cancel order ───────────────────────────────────────────────────────────
 @orders_bp.route("/<int:order_id>/cancel", methods=["PATCH"])
 @jwt_required()
 def cancel_order(order_id):
@@ -159,19 +144,13 @@ def cancel_order(order_id):
     order.cancellation_reason  = reason
     db.session.commit()
 
-    # Notify customer
     from services.notification_service import notify_order_status_change
     notify_order_status_change(order, order.user)
 
     return success_response(order.to_dict(), "Order cancelled.")
 
 
-# ── Auto-cancel unpaid orders (called by scheduler / cron) ────────────────
 def auto_cancel_unpaid_orders():
-    """
-    Cancel orders where deposit was not paid within 24 hours.
-    Call this from a scheduler (e.g. APScheduler or Celery beat).
-    """
     cutoff = datetime.utcnow() - timedelta(hours=24)
     stale  = Order.query.filter(
         Order.status == "order_received",

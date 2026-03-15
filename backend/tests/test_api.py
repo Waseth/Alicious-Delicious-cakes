@@ -318,10 +318,6 @@ class TestDepositPayment:
         assert res.status_code == 400
 
 
-# ══════════════════════════════════════════════════════════════════════════
-# ADMIN AUTHORIZATION TESTS
-# ══════════════════════════════════════════════════════════════════════════
-
 class TestAdminAuthorization:
     def test_customer_cannot_access_admin_orders(self, client):
         register_user(client, "Regular Joe", "joe_auth@example.com", "0766666661", "pass1234")
@@ -344,10 +340,6 @@ class TestAdminAuthorization:
         res = client.get("/admin/dashboard", headers=auth_headers(token))
         assert res.status_code == 200, f"Got {res.status_code}: {res.get_json()}"
 
-
-# ══════════════════════════════════════════════════════════════════════════
-# REVIEWS TESTS
-# ══════════════════════════════════════════════════════════════════════════
 
 class TestReviews:
     def test_submit_review(self, client):

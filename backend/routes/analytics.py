@@ -1,8 +1,3 @@
-"""
-Financial analytics routes
-GET /admin/dashboard
-GET /admin/finance
-"""
 from datetime import datetime, date
 from calendar import month_abbr
 

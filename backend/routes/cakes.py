@@ -1,11 +1,3 @@
-"""
-Cake catalog routes
-GET  /cakes
-GET  /cakes/featured
-POST /admin/cakes
-PATCH /admin/cakes/<id>
-DELETE /admin/cakes/<id>
-"""
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 

@@ -1,6 +1,3 @@
-"""
-Pytest configuration and shared fixtures.
-"""
 import pytest
 from app import create_app
 from extensions import db as _db
@@ -8,10 +5,8 @@ from extensions import db as _db
 
 @pytest.fixture(scope="session")
 def app():
-    """Create application with in-memory SQLite for testing."""
     application = create_app("testing")
 
-    # ── Sanity-check the JWT key length at test-session start ─────────────
     jwt_key = application.config.get("JWT_SECRET_KEY", "")
     assert len(jwt_key) >= 32, (
         f"JWT_SECRET_KEY is only {len(jwt_key)} bytes — must be ≥32. "
@@ -27,7 +22,6 @@ def app():
 
 
 def _seed_admin(application):
-    """Pre-create the whitelisted admin so every test class can log in."""
     from extensions import bcrypt
     from models.user import User
     with application.app_context():
@@ -50,7 +44,6 @@ def client(app):
 
 @pytest.fixture(scope="function")
 def db(app):
-    """Provide a clean DB session per test (rollback after each)."""
     connection = _db.engine.connect()
     transaction = connection.begin()
     yield _db
@@ -59,7 +52,6 @@ def db(app):
     connection.close()
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
 def register_user(client, name, email, phone, password, role="customer"):
     return client.post(
         "/auth/register",

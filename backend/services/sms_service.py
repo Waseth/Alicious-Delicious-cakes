@@ -1,7 +1,3 @@
-"""
-SMS Service — Africa's Talking integration.
-In production, install: pip install africastalking
-"""
 import logging
 from flask import current_app
 

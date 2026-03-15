@@ -1,10 +1,3 @@
-"""
-Admin order management routes
-GET   /admin/orders
-PATCH /admin/orders/<id>/start-baking
-PATCH /admin/orders/<id>/mark-ready
-PATCH /admin/orders/<id>/mark-delivered
-"""
 from flask import Blueprint, request
 
 from extensions import db

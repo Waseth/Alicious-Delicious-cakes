@@ -5,12 +5,8 @@ from models.user import User
 
 
 def admin_required(fn):
-    """
-    Decorator — JWT must be valid (handled by @jwt_required, returns 401 if not),
-    then role must be 'admin' (returns 403 if not).
-    """
     @wraps(fn)
-    @jwt_required()          # handles missing/invalid/expired token → 401
+    @jwt_required()
     def wrapper(*args, **kwargs):
         user_id = get_jwt_identity()
         user = User.query.get(int(user_id))
@@ -21,7 +17,6 @@ def admin_required(fn):
 
 
 def customer_or_admin_required(fn):
-    """Decorator — any authenticated user (JWT validated → 401 if missing)."""
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
