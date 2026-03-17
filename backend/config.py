@@ -10,7 +10,16 @@ class Config:
     DEBUG = False
     TESTING = False
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
+    SQLALCHEMY_DATABASE_URI = (
+        os.getenv("DATABASE_URL")
+        or "mysql+pymysql://{}:{}@{}:{}/{}".format(
+            os.getenv("MYSQLUSER", "root"),
+            os.getenv("MYSQLPASSWORD", ""),
+            os.getenv("MYSQLHOST", "localhost"),
+            os.getenv("MYSQLPORT", "3306"),
+            os.getenv("MYSQLDATABASE", "railway"),
+        )
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -50,9 +59,15 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        f"mysql+pymysql://{os.getenv('DB_USER','root')}:{os.getenv('DB_PASSWORD','')}@{os.getenv('DB_HOST','localhost')}:{os.getenv('DB_PORT','3306')}/{os.getenv('DB_NAME','alicious_cakes_db')}",
+    SQLALCHEMY_DATABASE_URI = (
+        os.getenv("DATABASE_URL")
+        or "mysql+pymysql://{}:{}@{}:{}/{}".format(
+            os.getenv("DB_USER", "root"),
+            os.getenv("DB_PASSWORD", ""),
+            os.getenv("DB_HOST", "localhost"),
+            os.getenv("DB_PORT", "3306"),
+            os.getenv("DB_NAME", "alicious_cakes_db"),
+        )
     )
 
 
