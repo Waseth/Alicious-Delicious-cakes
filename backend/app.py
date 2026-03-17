@@ -187,12 +187,13 @@ def create_app(config_name=None):
     return app
 
 
+# CREATE THE GLOBAL APP INSTANCE FOR GUNICORN (THIS IS THE FIX!)
+app = create_app()
+
 if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("RUNNING APP DIRECTLY (not through gunicorn)")
     logger.info("=" * 50)
-
-    app = create_app()
 
     # Get port from environment (Railway provides PORT env var)
     port = int(os.getenv("PORT", 5000))

@@ -1,0 +1,10 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install flask"
+
+[deploy]
+startCommand = "gunicorn railway_test:app --bind 0.0.0.0:$PORT --log-level debug"
+healthcheckPath = "/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
