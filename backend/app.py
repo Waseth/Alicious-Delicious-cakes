@@ -4,9 +4,22 @@ import logging
 import time
 from dotenv import load_dotenv
 from flask import Flask, jsonify
-from config import config_map
-from extensions import db, jwt, bcrypt, cors
 from sqlalchemy.exc import OperationalError
+
+# Add the current directory to Python path (this is the fix!)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Now try to import config
+try:
+    from config import config_map
+    from extensions import db, jwt, bcrypt, cors
+    logger.info("✓ Successfully imported config and extensions")
+except ImportError as e:
+    print(f"ERROR: Failed to import: {e}")
+    print(f"Current directory: {os.getcwd()}")
+    print(f"Files in current directory: {os.listdir('.')}")
+    print(f"Python path: {sys.path}")
+    raise
 
 # Configure logging FIRST - before anything else
 logging.basicConfig(
@@ -28,6 +41,7 @@ logger.info("=" * 50)
 logger.info(f"Python version: {sys.version}")
 logger.info(f"Current directory: {os.getcwd()}")
 logger.info(f"Files in current directory: {os.listdir('.')}")
+logger.info(f"Python path: {sys.path}")
 logger.info(f"Environment variables loaded: {list(os.environ.keys())}")
 
 # Load environment variables
@@ -187,7 +201,7 @@ def create_app(config_name=None):
     return app
 
 
-# CREATE THE GLOBAL APP INSTANCE FOR GUNICORN (THIS IS THE FIX!)
+# CREATE THE GLOBAL APP INSTANCE FOR GUNICORN
 app = create_app()
 
 if __name__ == "__main__":
