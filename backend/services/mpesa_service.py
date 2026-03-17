@@ -1,159 +1,262 @@
 import base64
 import logging
+import requests
 from datetime import datetime
 from flask import current_app
 
 logger = logging.getLogger(__name__)
 
+SANDBOX_BASE = "https://sandbox.safaricom.co.ke"
+PRODUCTION_BASE = "https://api.safaricom.co.ke"
 
-def _get_access_token() -> str | None:
-    import requests
-    consumer_key    = current_app.config["MPESA_CONSUMER_KEY"]
-    consumer_secret = current_app.config["MPESA_CONSUMER_SECRET"]
 
-    print(f"\n DEBUG - Consumer Key from config: {consumer_key[:10] if consumer_key else 'NOT FOUND'}...")
-    print(f" DEBUG - Consumer Secret from config: {consumer_secret[:10] if consumer_secret else 'NOT FOUND'}...")
+def _base_url() -> str:
+    env = current_app.config.get("MPESA_ENV", "sandbox").lower()
+    return PRODUCTION_BASE if env == "production" else SANDBOX_BASE
 
-    if not consumer_key or not consumer_secret:
-        print("DEBUG - Consumer Key or Secret missing!")
-        return None
 
-    credentials = base64.b64encode(f"{consumer_key}:{consumer_secret}".encode()).decode()
-    resp = requests.get(
-        "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
-        headers={"Authorization": f"Basic {credentials}"},
-        timeout=10,
-    )
-    if resp.status_code == 200:
+class DarajaService:
+
+    def get_access_token(self) -> str:
+        consumer_key = current_app.config.get("MPESA_CONSUMER_KEY", "")
+        consumer_secret = current_app.config.get("MPESA_CONSUMER_SECRET", "")
+
+        if not consumer_key or not consumer_secret:
+            raise RuntimeError("MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET must be set in .env")
+
+        credentials = base64.b64encode(f"{consumer_key}:{consumer_secret}".encode()).decode()
+        url = f"{_base_url()}/oauth/v1/generate?grant_type=client_credentials"
+
+        logger.info("[Daraja] Fetching OAuth token from %s", url)
+
+        try:
+            resp = requests.get(
+                url,
+                headers={"Authorization": f"Basic {credentials}"},
+                timeout=15,
+            )
+            resp.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            logger.error("[Daraja] Token request failed: %s", exc)
+            raise RuntimeError(f"Could not fetch Daraja access token: {exc}") from exc
+
         token = resp.json().get("access_token")
-        logger.info("[Daraja] OAuth token obtained successfully")
+        if not token:
+            raise RuntimeError(f"Daraja returned no access_token. Response: {resp.text}")
+
+        logger.info("[Daraja] Access token obtained successfully.")
         return token
-    else:
-        logger.error(f"[Daraja] Failed to get token: {resp.status_code} - {resp.text}")
-        return None
 
+    def _generate_password(self):
+        shortcode = current_app.config["MPESA_SHORTCODE"]
+        passkey = current_app.config["MPESA_PASSKEY"]
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        raw = f"{shortcode}{passkey}{timestamp}"
+        password = base64.b64encode(raw.encode()).decode()
+        return password, timestamp
 
-def _generate_password(shortcode: str, passkey: str, timestamp: str) -> str:
-    raw = f"{shortcode}{passkey}{timestamp}"
-    return base64.b64encode(raw.encode()).decode()
+    @staticmethod
+    def _format_phone(phone: str) -> str:
+        phone = phone.strip().replace(" ", "").replace("-", "")
+        if phone.startswith("+"):
+            phone = phone[1:]
+        if phone.startswith("0"):
+            phone = "254" + phone[1:]
+        return phone
 
+    def stk_push(self, phone, amount, order_id, payment_type):
+        shortcode = current_app.config["MPESA_SHORTCODE"]
+        callback_url = current_app.config["MPESA_CALLBACK_URL"]
+        password, timestamp = self._generate_password()
+        formatted_phone = self._format_phone(phone)
+        rounded_amount = int(round(amount))
 
-def initiate_stk_push(phone_number: str, amount: float, order_id: int, payment_type: str) -> dict:
-    import requests
-
-    shortcode = current_app.config["MPESA_SHORTCODE"]
-    passkey   = current_app.config["MPESA_PASSKEY"]
-    print(f"\n DEBUG - Passkey from config: {passkey[:50]}...")
-    print(f" DEBUG - Passkey length: {len(passkey)}")
-    callback  = current_app.config["MPESA_CALLBACK_URL"]
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    password  = _generate_password(shortcode, passkey, timestamp)
-
-    account_ref = f"ORDER-{order_id}"
-    description = f"Alicious Delicious – {payment_type} payment"
-
-    token = _get_access_token()
-    if not token:
-        logger.error("[Daraja] Failed to get access token")
-        return {
-            "success": False,
-            "checkout_request_id": None,
-            "error": "Failed to get access token from Safaricom"
+        payload = {
+            "BusinessShortCode": shortcode,
+            "Password": password,
+            "Timestamp": timestamp,
+            "TransactionType": "CustomerPayBillOnline",
+            "Amount": rounded_amount,
+            "PartyA": formatted_phone,
+            "PartyB": shortcode,
+            "PhoneNumber": formatted_phone,
+            "CallBackURL": callback_url,
+            "AccountReference": f"ADC-{order_id}",
+            "TransactionDesc": f"Alicious Delicious Cakes {payment_type} order {order_id}",
         }
 
-    print(f"\n DEBUG - Token obtained: {token[:20]}...")
-    print(f" DEBUG - Shortcode: {shortcode}")
-    print(f" DEBUG - Phone: {phone_number}")
-    print(f" DEBUG - Amount: {amount}")
-    print(f" DEBUG - Callback: {callback}")
-
-    payload = {
-        "BusinessShortCode": shortcode,
-        "Password": password,
-        "Timestamp": timestamp,
-        "TransactionType": "CustomerPayBillOnline",
-        "Amount": int(amount),
-        "PartyA": phone_number,
-        "PartyB": shortcode,
-        "PhoneNumber": phone_number,
-        "CallBackURL": callback,
-        "AccountReference": account_ref,
-        "TransactionDesc": description,
-    }
-
-    print(f" DEBUG - Payload: {payload}")
-
-    logger.info(f"[Daraja] Sending STK Push to {phone_number} for amount {amount}")
-
-    try:
-        resp = requests.post(
-            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-            json=payload,
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=15,
+        logger.info(
+            "[Daraja] STK Push | Phone: %s | Amount: KES %s | Order: %s | Type: %s",
+            formatted_phone, rounded_amount, order_id, payment_type,
         )
 
-        print(f" DEBUG - Response Status: {resp.status_code}")
-        print(f" DEBUG - Response Headers: {dict(resp.headers)}")
-        print(f" DEBUG - Response Text: {resp.text}")
-
-        data = resp.json()
-        logger.info(f"[Daraja] STK Push response: {data}")
-
-        if data.get("ResponseCode") == "0":
-            checkout_id = data.get("CheckoutRequestID")
-            logger.info(f"[Daraja] STK Push accepted. CheckoutRequestID: {checkout_id}")
-            return {
-                "success": True,
-                "checkout_request_id": checkout_id,
-                "error": None
-            }
-        else:
-            error_msg = data.get("errorMessage", "STK push failed")
-            logger.error(f"[Daraja] STK Push failed: {error_msg}")
+        try:
+            token = self.get_access_token()
+            resp = requests.post(
+                f"{_base_url()}/mpesa/stkpush/v1/processrequest",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+        except requests.exceptions.RequestException as exc:
+            logger.error("[Daraja] STK Push network error: %s", exc)
             return {
                 "success": False,
                 "checkout_request_id": None,
-                "error": error_msg
+                "merchant_request_id": None,
+                "customer_message": None,
+                "error": f"Network error: {exc}",
             }
 
-    except requests.exceptions.Timeout:
-        logger.error("[Daraja] STK Push timeout")
+        data = resp.json()
+        logger.info("[Daraja] STK Push response: %s", data)
+
+        if data.get("ResponseCode") == "0":
+            logger.info("[Daraja] STK Push accepted. CheckoutRequestID: %s", data.get("CheckoutRequestID"))
+            return {
+                "success": True,
+                "checkout_request_id": data.get("CheckoutRequestID"),
+                "merchant_request_id": data.get("MerchantRequestID"),
+                "customer_message": data.get("CustomerMessage"),
+                "error": None,
+            }
+
+        error_msg = data.get("errorMessage") or data.get("ResponseDescription") or str(data)
+        logger.warning("[Daraja] STK Push rejected: %s", error_msg)
         return {
             "success": False,
             "checkout_request_id": None,
-            "error": "Request timeout - please try again"
+            "merchant_request_id": None,
+            "customer_message": None,
+            "error": error_msg,
         }
-    except Exception as exc:
-        logger.error(f"[Daraja] STK Push error: {exc}")
+
+    def query_stk_status(self, checkout_request_id):
+        shortcode = current_app.config["MPESA_SHORTCODE"]
+        password, timestamp = self._generate_password()
+
+        payload = {
+            "BusinessShortCode": shortcode,
+            "Password": password,
+            "Timestamp": timestamp,
+            "CheckoutRequestID": checkout_request_id,
+        }
+
+        logger.info("[Daraja] Querying STK status: %s", checkout_request_id)
+
+        try:
+            token = self.get_access_token()
+            resp = requests.post(
+                f"{_base_url()}/mpesa/stkpushquery/v1/query",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                timeout=15,
+            )
+        except requests.exceptions.RequestException as exc:
+            logger.error("[Daraja] STK status query failed: %s", exc)
+            return {"success": False, "error": str(exc)}
+
+        data = resp.json()
+        logger.info("[Daraja] STK status response: %s", data)
+
+        result_code = data.get("ResultCode")
+        return {
+            "success": result_code == "0",
+            "result_code": result_code,
+            "description": data.get("ResultDesc"),
+            "raw": data,
+        }
+
+    @staticmethod
+    def parse_callback(callback_data):
+        logger.info("[Daraja] Callback received: %s", callback_data)
+
+        try:
+            stk = callback_data["Body"]["stkCallback"]
+        except (KeyError, TypeError):
+            logger.error("[Daraja] Malformed callback — missing Body.stkCallback")
+            return {
+                "success": False,
+                "checkout_request_id": None,
+                "merchant_request_id": None,
+                "mpesa_receipt": None,
+                "amount": None,
+                "phone": None,
+                "transaction_date": None,
+                "result_code": -1,
+                "result_desc": "Malformed callback payload",
+            }
+
+        result_code = stk.get("ResultCode", -1)
+        result_desc = stk.get("ResultDesc", "")
+        checkout_request_id = stk.get("CheckoutRequestID")
+        merchant_request_id = stk.get("MerchantRequestID")
+
+        base = {
+            "checkout_request_id": checkout_request_id,
+            "merchant_request_id": merchant_request_id,
+            "result_code": result_code,
+            "result_desc": result_desc,
+        }
+
+        if result_code != 0:
+            logger.warning(
+                "[Daraja] Payment FAILED | CheckoutID: %s | Code: %s | Desc: %s",
+                checkout_request_id, result_code, result_desc,
+            )
+            return {
+                **base,
+                "success": False,
+                "mpesa_receipt": None,
+                "amount": None,
+                "phone": None,
+                "transaction_date": None,
+            }
+
+        metadata = {}
+        for item in stk.get("CallbackMetadata", {}).get("Item", []):
+            name = item.get("Name")
+            if name:
+                metadata[name] = item.get("Value")
+
+        mpesa_receipt = metadata.get("MpesaReceiptNumber")
+        amount = metadata.get("Amount")
+        phone = str(metadata.get("PhoneNumber", ""))
+        transaction_date = str(metadata.get("TransactionDate", ""))
+
+        logger.info(
+            "[Daraja] Payment SUCCESS | Receipt: %s | Amount: KES %s | Phone: %s",
+            mpesa_receipt, amount, phone,
+        )
+
+        return {
+            **base,
+            "success": True,
+            "mpesa_receipt": mpesa_receipt,
+            "amount": float(amount) if amount is not None else None,
+            "phone": phone,
+            "transaction_date": transaction_date,
+        }
+
+
+def initiate_stk_push(phone, amount, order_id, payment_type):
+    service = DarajaService()
+    try:
+        return service.stk_push(phone, amount, order_id, payment_type)
+    except RuntimeError as exc:
+        logger.error("[Daraja] initiate_stk_push error: %s", exc)
         return {
             "success": False,
             "checkout_request_id": None,
-            "error": str(exc)
+            "error": str(exc),
         }
 
 
-def handle_mpesa_callback(callback_data: dict) -> dict:
-    stk_callback = callback_data.get("Body", {}).get("stkCallback", {})
-    result_code  = stk_callback.get("ResultCode")
-    checkout_id  = stk_callback.get("CheckoutRequestID")
-
-    if result_code != 0:
-        return {
-            "success": False,
-            "checkout_request_id": checkout_id,
-            "error": stk_callback.get("ResultDesc"),
-        }
-
-    metadata = {}
-    items = stk_callback.get("CallbackMetadata", {}).get("Item", [])
-    for item in items:
-        metadata[item.get("Name")] = item.get("Value")
-
-    return {
-        "success": True,
-        "checkout_request_id": checkout_id,
-        "mpesa_receipt": metadata.get("MpesaReceiptNumber"),
-        "amount": metadata.get("Amount"),
-        "phone": metadata.get("PhoneNumber"),
-    }
+def handle_mpesa_callback(callback_data):
+    return DarajaService.parse_callback(callback_data)

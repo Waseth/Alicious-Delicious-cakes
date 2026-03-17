@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 from config import config_map
@@ -7,26 +8,32 @@ from extensions import db, jwt, bcrypt, cors
 load_dotenv()
 
 
-def create_app(config_name: str | None = None) -> Flask:
+def create_app(config_name=None):
     if config_name is None:
-        config_name = os.getenv("FLASK_ENV", "development")
+        config_name = os.getenv("FLASK_ENV", "production")
 
     app = Flask(__name__)
     app.config.from_object(config_map[config_name])
+
+    logging.basicConfig(
+        level=logging.DEBUG if app.config.get("DEBUG") else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     db.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
     cors.init_app(app, resources={r"/*": {"origins": "*"}})
 
-    from routes.auth         import auth_bp
-    from routes.cakes        import cakes_bp, admin_cakes_bp
-    from routes.orders       import orders_bp
-    from routes.payments     import payments_bp
+    from routes.auth import auth_bp
+    from routes.cakes import cakes_bp, admin_cakes_bp
+    from routes.orders import orders_bp
+    from routes.payments import payments_bp
     from routes.admin_orders import admin_orders_bp
-    from routes.reviews      import reviews_bp
-    from routes.expenses     import expenses_bp
-    from routes.analytics    import analytics_bp
+    from routes.reviews import reviews_bp
+    from routes.expenses import expenses_bp
+    from routes.analytics import analytics_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(cakes_bp)
@@ -74,4 +81,5 @@ def create_app(config_name: str | None = None) -> Flask:
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

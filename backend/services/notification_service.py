@@ -1,21 +1,14 @@
-"""
-Notification service — creates DB records and dispatches SMS.
-"""
 import logging
 from extensions import db
 from models.notification import Notification
-from services.sms_service import send_order_status_sms
+from services.sms_service import send_order_status_sms, ORDER_STATUS_MESSAGES
 
 logger = logging.getLogger(__name__)
 
 
 def notify_order_status_change(order, user) -> Notification:
-    """
-    Create a Notification record and send an SMS when order status changes.
-    """
     result = send_order_status_sms(order, user)
 
-    from services.sms_service import ORDER_STATUS_MESSAGES
     template = ORDER_STATUS_MESSAGES.get(order.status, "Order #{order_id} updated.")
     message = template.format(
         name=user.name.split()[0],
@@ -36,6 +29,6 @@ def notify_order_status_change(order, user) -> Notification:
     db.session.commit()
 
     if not result.get("success"):
-        logger.warning("SMS failed for order %s: %s", order.id, result.get("error"))
+        logger.warning("[Notification] SMS failed for order %s: %s", order.id, result.get("error"))
 
     return notification

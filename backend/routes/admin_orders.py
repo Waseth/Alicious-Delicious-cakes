@@ -1,20 +1,24 @@
 from flask import Blueprint, request
+import logging
 
 from extensions import db
 from models.order import Order
+from models.payment import Payment
 from services.notification_service import notify_order_status_change
+from services.mpesa_service import initiate_stk_push
 from utils.decorators import admin_required
 from utils.helpers import success_response, error_response
 
+logger = logging.getLogger(__name__)
 admin_orders_bp = Blueprint("admin_orders", __name__, url_prefix="/admin/orders")
 
 
 @admin_orders_bp.route("", methods=["GET"])
 @admin_required
 def list_all_orders():
-    page     = int(request.args.get("page", 1))
+    page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 20))
-    status   = request.args.get("status", "").strip()
+    status = request.args.get("status", "").strip()
 
     query = Order.query
     if status:
@@ -25,8 +29,8 @@ def list_all_orders():
 
     return success_response({
         "orders": [o.to_dict(include_items=True) for o in pagination.items],
-        "total":  pagination.total,
-        "pages":  pagination.pages,
+        "total": pagination.total,
+        "pages": pagination.pages,
         "current_page": page,
     })
 
@@ -40,9 +44,7 @@ def start_baking(order_id):
         return error_response("Deposit must be paid before baking starts.", 400)
 
     if order.status != "order_received":
-        return error_response(
-            f"Cannot start baking from status '{order.status}'.", 400
-        )
+        return error_response(f"Cannot start baking from status '{order.status}'.", 400)
 
     order.status = "baking_in_progress"
     db.session.commit()
@@ -57,9 +59,7 @@ def mark_ready(order_id):
     order = Order.query.get_or_404(order_id)
 
     if order.status != "baking_in_progress":
-        return error_response(
-            f"Cannot mark ready from status '{order.status}'.", 400
-        )
+        return error_response(f"Cannot mark ready from status '{order.status}'.", 400)
 
     order.status = "cake_ready"
     db.session.commit()
@@ -74,17 +74,62 @@ def mark_delivered(order_id):
     order = Order.query.get_or_404(order_id)
 
     if order.status not in ("cake_ready", "baking_in_progress"):
-        return error_response(
-            f"Cannot mark delivered from status '{order.status}'.", 400
-        )
+        return error_response(f"Cannot mark delivered from status '{order.status}'.", 400)
 
-    if not order.balance_paid:
-        return error_response(
-            "Balance payment must be completed before marking as delivered.", 400
-        )
+    if not order.deposit_paid:
+        return error_response("Deposit must be paid before marking as delivered.", 400)
+
+    if order.balance_paid:
+        return error_response("Balance already paid. Order is fully settled.", 400)
 
     order.status = "delivered"
     db.session.commit()
+
     notify_order_status_change(order, order.user)
 
-    return success_response(order.to_dict(), "Order marked as delivered. Customer notified.")
+    try:
+        logger.info("Triggering auto balance STK push for order %s", order_id)
+
+        result = initiate_stk_push(
+            order.user.phone_number,
+            order.balance_due,
+            order.id,
+            "balance",
+        )
+
+        if result["success"]:
+            payment = Payment(
+                order_id=order.id,
+                amount=order.balance_due,
+                payment_type="balance",
+                mpesa_checkout_request_id=result["checkout_request_id"],
+                status="pending",
+            )
+            db.session.add(payment)
+            db.session.commit()
+
+            logger.info("Auto balance STK push sent for order %s", order_id)
+
+            return success_response({
+                "order": order.to_dict(),
+                "payment": {
+                    "id": payment.id,
+                    "checkout_request_id": payment.mpesa_checkout_request_id,
+                    "amount": float(payment.amount),
+                    "status": payment.status,
+                },
+            }, "Order marked as delivered. STK push sent to customer for balance payment.")
+
+        else:
+            logger.error("Auto balance STK push failed for order %s: %s", order_id, result.get("error"))
+            return success_response({
+                "order": order.to_dict(),
+                "warning": f"Order delivered but STK push failed: {result.get('error')}",
+            }, "Order marked as delivered but balance STK push failed. Please try manually.")
+
+    except Exception as exc:
+        logger.error("Error sending auto balance STK push for order %s: %s", order_id, str(exc))
+        return success_response({
+            "order": order.to_dict(),
+            "warning": f"Order delivered but STK push error: {str(exc)}",
+        }, "Order marked as delivered but balance STK push encountered an error.")
