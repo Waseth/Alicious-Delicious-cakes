@@ -1,8 +1,10 @@
 config.py
 __pycache__/
 *.pyc
+*.pyd
 *.py[cod]
 *.pyo
+.Python
 .env
 venv/
 env/
@@ -17,3 +19,9 @@ htmlcov/
 *.sqlite3
 instance/
 .DS_Store
+*.log
+.vscode/
+.idea/
+*.swp
+*.swo
+railway.json
