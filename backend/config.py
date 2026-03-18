@@ -5,14 +5,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _get_db_url():
+    url = os.getenv("DATABASE_URL", "")
+    if url.startswith("mysql://"):
+        return url.replace("mysql://", "mysql+pymysql://", 1)
+    if url.startswith("mysql+pymysql://"):
+        return url
+    return "mysql+pymysql://{}:{}@{}:{}/{}".format(
+        os.getenv("MYSQLUSER", "root"),
+        os.getenv("MYSQLPASSWORD", ""),
+        os.getenv("MYSQLHOST", "localhost"),
+        os.getenv("MYSQLPORT", "3306"),
+        os.getenv("MYSQLDATABASE", "railway"),
+    )
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
     DEBUG = False
     TESTING = False
 
-    _raw_db_url = os.getenv("DATABASE_URL", "")
-    SQLALCHEMY_DATABASE_URI = _raw_db_url.replace("mysql://", "mysql+pymysql://", 1) if _raw_db_url else ""
-    
+    SQLALCHEMY_DATABASE_URI = _get_db_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -53,8 +66,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = (
-        os.getenv("DATABASE_URL")
-        or "mysql+pymysql://{}:{}@{}:{}/{}".format(
+        "mysql+pymysql://{}:{}@{}:{}/{}".format(
             os.getenv("DB_USER", "root"),
             os.getenv("DB_PASSWORD", ""),
             os.getenv("DB_HOST", "localhost"),
