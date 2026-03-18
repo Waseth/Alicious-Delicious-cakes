@@ -10,16 +10,9 @@ class Config:
     DEBUG = False
     TESTING = False
 
-    SQLALCHEMY_DATABASE_URI = (
-        os.getenv("DATABASE_URL")
-        or "mysql+pymysql://{}:{}@{}:{}/{}".format(
-            os.getenv("MYSQLUSER", "root"),
-            os.getenv("MYSQLPASSWORD", ""),
-            os.getenv("MYSQLHOST", "localhost"),
-            os.getenv("MYSQLPORT", "3306"),
-            os.getenv("MYSQLDATABASE", "railway"),
-        )
-    )
+    _raw_db_url = os.getenv("DATABASE_URL", "")
+    SQLALCHEMY_DATABASE_URI = _raw_db_url.replace("mysql://", "mysql+pymysql://", 1) if _raw_db_url else ""
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
