@@ -72,12 +72,12 @@ def create_app(config_name=None):
 
     @app.route("/debug-db", methods=["GET"])
     def debug_db():
-    import os
-    raw = os.getenv("DATABASE_URL", "NOT SET")
-    return jsonify({
-        "DATABASE_URL_prefix": raw[:30] if raw else "EMPTY",
-        "SQLALCHEMY_URI_prefix": app.config.get("SQLALCHEMY_DATABASE_URI", "")[:30],
-    }), 200
+        import os
+        raw = os.getenv("DATABASE_URL", "NOT SET")
+        return jsonify({
+            "DATABASE_URL_prefix": raw[:30] if raw else "EMPTY",
+            "SQLALCHEMY_URI_prefix": app.config.get("SQLALCHEMY_DATABASE_URI", "")[:30],
+        }), 200
 
     @app.route("/", methods=["GET"])
     def home():
