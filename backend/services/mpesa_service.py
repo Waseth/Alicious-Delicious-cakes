@@ -12,7 +12,10 @@ PRODUCTION_BASE = "https://api.safaricom.co.ke"
 
 def _base_url() -> str:
     env = current_app.config.get("MPESA_ENV", "sandbox").lower()
-    return PRODUCTION_BASE if env == "production" else SANDBOX_BASE
+    logger.info(f"[Daraja] ENV from config: {env}")
+    url = PRODUCTION_BASE if env == "production" else SANDBOX_BASE
+    logger.info(f"[Daraja] Using base URL: {url}")
+    return url
 
 
 class DarajaService:
