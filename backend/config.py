@@ -90,7 +90,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    MPESA_ENV = "production"
+    # MPESA_ENV = "production"
 
 
 config_map = {
