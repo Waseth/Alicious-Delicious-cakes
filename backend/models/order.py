@@ -43,6 +43,8 @@ class Order(db.Model):
         data = {
             "id": self.id,
             "user_id": self.user_id,
+            "user_name": self.user.name if self.user else None,
+            "user_phone": self.user.phone_number if self.user else None,
             "total_price": float(self.total_price),
             "deposit_required": float(self.deposit_required),
             "deposit_paid": self.deposit_paid,

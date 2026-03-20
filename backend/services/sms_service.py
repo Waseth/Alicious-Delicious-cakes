@@ -8,18 +8,18 @@ ORDER_STATUS_MESSAGES = {
     "order_received": (
         "Hi {name}! Your order #{order_id} has been received by "
         "Alicious Delicious Cakes. Please complete your 50% deposit of "
-        "KES {deposit} to confirm your order. Thank you!"
+        "Ksh {deposit} to confirm your order. Thank you!"
     ),
     "baking_in_progress": (
-        "Great news, {name}! Baking has started for your order #{order_id}. "
-        "We'll notify you when your cake is ready."
+        "Hi, {name}! Baking has started for your order #{order_id}. "
+        "We will notify you when your cake is ready."
     ),
     "cake_ready": (
         "Your cake is READY, {name}! Order #{order_id} is waiting for you. "
-        "Please complete the balance payment of KES {balance} to arrange pickup/delivery."
+        "We will prompt you to pay Ksh {balance} upon delivery."
     ),
     "delivered": (
-        "Order #{order_id} marked as delivered. Thank you for choosing "
+        "Order #{order_id} has been delivered successfully.Thank you for choosing "
         "Alicious Delicious Cakes, {name}! We hope you enjoy every bite"
     ),
     "cancelled": (
