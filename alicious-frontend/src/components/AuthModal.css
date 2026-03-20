@@ -1,0 +1,46 @@
+.auth-modal {
+  background: white; border-radius: var(--radius);
+  width: 100%; max-width: 440px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+  position: relative; overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+.auth-tabs {
+  display: flex; position: relative;
+  background: var(--pink-pale);
+  border-bottom: 1px solid var(--pink-border);
+}
+.auth-tab {
+  flex: 1; padding: 16px; border: none; background: none;
+  font-family: 'Lato', sans-serif; font-weight: 700; font-size: 0.95rem;
+  color: var(--text-light); cursor: pointer; transition: var(--transition);
+  position: relative; z-index: 1;
+}
+.auth-tab.active { color: var(--pink-dark); }
+.auth-tab-indicator {
+  position: absolute; bottom: 0; height: 3px;
+  width: 50%; background: var(--pink-dark);
+  transition: transform 0.3s ease; border-radius: 2px 2px 0 0;
+}
+.auth-tab-indicator.login { transform: translateX(0); }
+.auth-tab-indicator.register { transform: translateX(100%); }
+.auth-body { padding: 28px; }
+.auth-header { text-align: center; margin-bottom: 24px; }
+.auth-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+.auth-header h2 {
+  font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--text);
+}
+.auth-header p { color: var(--text-light); font-size: 0.9rem; margin-top: 4px; }
+.auth-error {
+  background: #fee2e2; color: #991b1b; padding: 10px 14px;
+  border-radius: var(--radius-sm); font-size: 0.88rem; margin-bottom: 16px;
+}
+.auth-switch {
+  text-align: center; font-size: 0.88rem;
+  color: var(--text-light); margin-top: 16px;
+}
+.auth-switch button {
+  background: none; border: none; color: var(--pink-dark);
+  font-weight: 700; cursor: pointer; font-size: 0.88rem;
+}
+.auth-switch button:hover { text-decoration: underline; }

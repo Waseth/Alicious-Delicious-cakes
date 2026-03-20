@@ -1,0 +1,221 @@
+/* ── HERO ── */
+.hero {
+  position: relative; min-height: 92vh;
+  display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden; background: var(--pink-pale);
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(236,72,153,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(244,114,182,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+.hero-inner {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 64px; align-items: center;
+  padding-top: 80px; padding-bottom: 80px; position: relative; z-index: 1;
+}
+.hero-text { display: flex; flex-direction: column; gap: 20px; }
+.hero-title {
+  display: flex; flex-direction: column;
+  font-family: 'Dancing Script', cursive;
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: 0.95; color: var(--text);
+  font-weight: 700;
+}
+.title-line { display: block; }
+.line1 { color: var(--pink-dark); transform: rotate(-3deg); display: inline-block; }
+.line2 { color: var(--text); transform: rotate(-2deg); display: inline-block; margin-left: 16px; }
+.line3 { color: var(--pink); transform: rotate(-4deg); display: inline-block; margin-left: 32px; }
+.hero-subtitle {
+  font-size: 1.1rem; color: var(--text-light); line-height: 1.6;
+  max-width: 420px;
+}
+.hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+/* Hero photo */
+.hero-photo-wrap {
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.hero-photo-ring {
+  width: clamp(260px, 35vw, 380px);
+  height: clamp(260px, 35vw, 380px);
+  border-radius: 50%; border: 6px solid var(--pink-dark);
+  padding: 6px; overflow: visible; position: relative;
+  box-shadow: 0 12px 48px rgba(236,72,153,0.3);
+  transition: box-shadow 0.4s ease;
+}
+.hero-photo-ring:hover {
+  box-shadow: 0 20px 64px rgba(236,72,153,0.5);
+}
+.hero-photo-inner {
+  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+  background: linear-gradient(135deg, var(--pink-light), var(--pink-pale));
+  display: flex; align-items: center; justify-content: center;
+}
+/* Replace this with an actual <img> when you have the photo */
+.hero-photo-placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; color: var(--pink-dark);
+}
+.hero-photo-placeholder span { font-size: 5rem; }
+.hero-photo-placeholder p { font-family: 'Dancing Script', cursive; font-size: 1.4rem; }
+.hero-photo-decor {
+  position: absolute; border-radius: 50%; background: var(--pink-light);
+  opacity: 0.6; animation: float 4s ease-in-out infinite alternate;
+}
+.decor1 { width: 60px; height: 60px; top: -10px; right: 20px; animation-delay: 0s; }
+.decor2 { width: 40px; height: 40px; bottom: 20px; left: -10px; animation-delay: 1.5s; }
+@keyframes float { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+.hero-scroll-hint {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+}
+.scroll-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--pink-dark);
+  animation: bounce 1.5s ease-in-out infinite;
+}
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+/* ── HOW TO ORDER ── */
+.how-to-order { background: white; }
+.steps-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+  position: relative;
+}
+.step-card {
+  background: var(--pink-pale); border-radius: var(--radius);
+  padding: 32px 24px; text-align: center; position: relative;
+  border: 1px solid var(--pink-border); transition: var(--transition);
+}
+.step-card:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
+.step-number {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 36px; background: var(--pink-dark); color: white;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.9rem;
+}
+.step-icon { font-size: 2.5rem; margin: 12px 0 16px; }
+.step-card h3 {
+  font-family: 'Playfair Display', serif; font-size: 1.1rem;
+  color: var(--text); margin-bottom: 8px;
+}
+.step-card p { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; }
+.steps-connector {
+  text-align: center; color: var(--pink-dark); font-size: 1.1rem;
+  margin-top: -16px; opacity: 0.4; letter-spacing: 4px;
+}
+
+/* ── FEATURED SLIDER ── */
+.featured-section { background: var(--pink-pale); }
+.slider-wrap {
+  display: flex; align-items: center; gap: 16px; position: relative;
+}
+.slider-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; flex: 1;
+}
+.slider-btn {
+  width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--pink-dark);
+  background: white; color: var(--pink-dark); font-size: 1.4rem;
+  cursor: pointer; flex-shrink: 0; transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.slider-btn:hover { background: var(--pink-dark); color: white; }
+.slider-btn.hidden { visibility: hidden; }
+.slider-dots {
+  display: flex; gap: 8px; justify-content: center; margin-top: 20px;
+}
+.slider-dot {
+  width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--pink-dark);
+  background: transparent; cursor: pointer; transition: var(--transition);
+}
+.slider-dot.active { background: var(--pink-dark); }
+.empty-state {
+  text-align: center; padding: 48px; color: var(--text-light);
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.empty-state span { font-size: 3rem; }
+
+/* ── TESTIMONIALS ── */
+.testimonials-section { background: white; }
+.reviews-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+  margin-bottom: 48px;
+}
+.review-card {
+  display: flex; gap: 16px; padding: 20px;
+  background: var(--pink-pale); border-radius: var(--radius);
+  border-right: 4px solid var(--pink-dark); transition: var(--transition);
+}
+.review-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.review-avatar {
+  width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+  background: var(--pink-dark); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1.1rem;
+}
+.review-content { flex: 1; }
+.review-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px; flex-wrap: wrap; gap: 4px;
+}
+.review-text { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; }
+.review-form-wrap {
+  background: var(--pink-pale); border-radius: var(--radius);
+  padding: 32px; max-width: 560px; margin: 0 auto;
+  border: 1px solid var(--pink-border);
+}
+.review-form-wrap h3 {
+  font-family: 'Playfair Display', serif; font-size: 1.3rem;
+  margin-bottom: 20px; text-align: center;
+}
+.review-form { display: flex; flex-direction: column; gap: 0; }
+.review-success {
+  color: #065f46; background: #d1fae5; padding: 10px 14px;
+  border-radius: var(--radius-sm); font-size: 0.88rem; margin-bottom: 12px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  background: var(--text); color: rgba(255,255,255,0.7);
+  padding: 48px 0 32px;
+}
+.footer-inner {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 20px; text-align: center;
+}
+.footer-brand .logo-text { color: var(--pink); }
+.footer-brand p { font-size: 0.88rem; margin-top: 4px; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a {
+  color: rgba(255,255,255,0.7); text-decoration: none;
+  font-size: 0.9rem; transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--pink); }
+.footer-social { display: flex; gap: 16px; }
+.social-link {
+  color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.88rem;
+  padding: 6px 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 50px;
+  transition: var(--transition);
+}
+.social-link:hover { border-color: var(--pink); color: var(--pink); }
+.footer-credit { font-size: 0.8rem; opacity: 0.5; margin-top: 8px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .hero-inner { grid-template-columns: 1fr; gap: 40px; text-align: center; padding-top: 40px; }
+  .hero-photo-wrap { order: -1; }
+  .hero-ctas { justify-content: center; }
+  .hero-subtitle { margin: 0 auto; }
+  .steps-grid { grid-template-columns: 1fr; gap: 24px; }
+  .steps-connector { display: none; }
+  .slider-grid { grid-template-columns: 1fr; }
+  .slider-btn { display: none; }
+  .reviews-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 1024px) and (min-width: 769px) {
+  .slider-grid { grid-template-columns: repeat(2, 1fr); }
+}
