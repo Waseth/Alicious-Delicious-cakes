@@ -1,3 +1,11 @@
+"""
+Cake catalog routes
+GET  /cakes
+GET  /cakes/featured
+POST /admin/cakes
+PATCH /admin/cakes/<id>
+DELETE /admin/cakes/<id>
+"""
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 
@@ -9,6 +17,7 @@ from utils.helpers import success_response, error_response, paginate_query
 cakes_bp  = Blueprint("cakes",       __name__, url_prefix="/cakes")
 admin_cakes_bp = Blueprint("admin_cakes", __name__, url_prefix="/admin/cakes")
 
+# Price tier mapping (KES)
 PRICE_TIERS = {
     "budget":   (0,    1500),
     "mid":      (1500, 4000),
@@ -16,6 +25,7 @@ PRICE_TIERS = {
 }
 
 
+# ── Public endpoints ───────────────────────────────────────────────────────
 @cakes_bp.route("", methods=["GET"])
 def list_cakes():
     search     = request.args.get("search", "").strip()
@@ -52,6 +62,7 @@ def featured_cakes():
     return success_response([c.to_dict() for c in cakes])
 
 
+# ── Admin endpoints ────────────────────────────────────────────────────────
 @admin_cakes_bp.route("", methods=["POST"])
 @admin_required
 def create_cake():
@@ -128,6 +139,26 @@ def update_cake(cake_id):
 @admin_required
 def delete_cake(cake_id):
     cake = Cake.query.get_or_404(cake_id)
+
+    # Check if cake has any orders that are not cancelled/delivered
+    from models.order import Order, OrderItem
+    active_order = (
+        db.session.query(Order)
+        .join(OrderItem, OrderItem.order_id == Order.id)
+        .filter(
+            OrderItem.cake_id == cake_id,
+            Order.status.notin_(["cancelled", "delivered"])
+        )
+        .first()
+    )
+
+    if active_order:
+        return error_response(
+            f"Cannot delete '{cake.name}' — it has active orders. "
+            "Wait until all orders are delivered or cancelled before deleting.",
+            409
+        )
+
     db.session.delete(cake)
     db.session.commit()
     return success_response(message="Cake deleted successfully.")

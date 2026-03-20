@@ -23,7 +23,8 @@ class Cake(db.Model):
     featured = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    order_items = db.relationship("OrderItem", back_populates="cake", lazy="dynamic")
+    # Relationships
+    order_items = db.relationship("OrderItem", back_populates="cake", lazy="dynamic", passive_deletes=True)
 
     def to_dict(self):
         return {

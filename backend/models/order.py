@@ -66,7 +66,7 @@ class OrderItem(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False, index=True)
-    cake_id = db.Column(db.Integer, db.ForeignKey("cakes.id"), nullable=False)
+    cake_id = db.Column(db.Integer, db.ForeignKey("cakes.id", ondelete="SET NULL"), nullable=True)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     price_at_time = db.Column(db.Numeric(10, 2), nullable=False)
 
@@ -78,7 +78,7 @@ class OrderItem(db.Model):
             "id": self.id,
             "order_id": self.order_id,
             "cake_id": self.cake_id,
-            "cake_name": self.cake.name if self.cake else None,
+            "cake_name": self.cake.name if self.cake else "[Cake deleted]",
             "quantity": self.quantity,
             "price_at_time": float(self.price_at_time),
             "subtotal": float(self.price_at_time) * self.quantity,
