@@ -15,57 +15,44 @@ function AppInner() {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [showCart, setShowCart] = useState(false);
-
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (user?.role === "admin" && window.location.pathname !== "/admin") {
-      window.location.href = "/admin";
+    if (user?.role === "admin") {
+      const path = window.location.pathname;
+      if (path !== "/admin") navigate("/admin", { replace: true });
     }
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="splash">
-        <div className="splash-logo">🎂</div>
-        <div className="splash-text">Alicious Delicious Cakes</div>
-        <div className="splash-loader" />
+  if (loading) return (
+    <div className="splash">
+      <div className="splash-inner">
+        <span className="splash-emoji">🎂</span>
+        <p className="splash-title">Alicious Delicious</p>
+        <div className="splash-bar"><div className="splash-fill" /></div>
       </div>
-    );
-  }
+    </div>
+  );
 
   const isAdmin = user?.role === "admin";
 
   return (
     <div className="app">
       {!isAdmin && (
-        <Navbar
-          onLoginClick={() => setShowAuth(true)}
-          onCartClick={() => setShowCart(true)}
-        />
+        <Navbar onLoginClick={() => setShowAuth(true)} onCartClick={() => setShowCart(true)} />
       )}
-
-      <main className={`main-content ${isAdmin ? "admin-mode" : ""}`}>
+      <main className={isAdmin ? "admin-main-wrap" : "page-wrap"}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage onOrderClick={() => {}} />} />
           <Route path="/cakes" element={<CakesPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/" />} />
-          <Route path="/admin" element={
-            user?.role === "admin" ? <AdminPanel /> : <Navigate to="/" />
-          } />
+          <Route path="/admin" element={user?.role === "admin" ? <AdminPanel /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-
-      {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)} />
-      )}
-      {showCart && (
-        <CartModal
-          onClose={() => setShowCart(false)}
-          onLoginNeeded={() => setShowAuth(true)}
-        />
-      )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showCart && <CartModal onClose={() => setShowCart(false)} onLoginNeeded={() => setShowAuth(true)} />}
     </div>
   );
 }

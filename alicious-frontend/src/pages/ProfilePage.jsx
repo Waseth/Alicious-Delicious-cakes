@@ -1,142 +1,58 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getMyOrders, cancelOrder } from "../utils/api";
+import ConfirmDialog from "../components/ConfirmDialog";
 
-const STATUS_LABELS = {
-  order_received: { label: "Order Received", color: "#f59e0b", icon: "📋" },
-  baking_in_progress: { label: "Baking", color: "#3b82f6", icon: "👩‍🍳" },
-  cake_ready: { label: "Ready!", color: "#10b981", icon: "🎂" },
-  delivered: { label: "Delivered", color: "#6b7280", icon: "✅" },
-  cancelled: { label: "Cancelled", color: "#ef4444", icon: "❌" },
-};
+const S = { order_received:{label:"Received",color:"#d97706",bg:"#fffbeb"}, baking_in_progress:{label:"Baking",color:"#2563eb",bg:"#eff6ff"}, cake_ready:{label:"Ready",color:"#059669",bg:"#f0fdf4"}, delivered:{label:"Delivered",color:"#6b7280",bg:"#f9fafb"}, cancelled:{label:"Cancelled",color:"#dc2626",bg:"#fff5f5"} };
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("orders");
-  const [cancelling, setCancelling] = useState(null);
-
-  useEffect(() => {
-    getMyOrders()
-      .then((r) => setOrders(r.data?.orders || []))
-      .catch(() => setOrders([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleCancel = async (orderId) => {
-    if (!confirm("Are you sure you want to cancel this order?")) return;
-    setCancelling(orderId);
-    try {
-      await cancelOrder(orderId, { reason: "Cancelled by customer" });
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: "cancelled" } : o));
-    } catch (err) {
-      alert(err.message || "Failed to cancel order");
-    } finally {
-      setCancelling(null);
-    }
+  const [orders, setOrders] = useState([]); const [loading, setLoading] = useState(true); const [tab, setTab] = useState("orders");
+  const [confirmCancel, setConfirmCancel] = useState(null); const [cancelling, setCancelling] = useState(null);
+  useEffect(() => { getMyOrders().then((r) => setOrders(r.data?.orders || [])).catch(() => setOrders([])).finally(() => setLoading(false)); }, []);
+  const handleCancel = async () => {
+    setCancelling(confirmCancel); setConfirmCancel(null);
+    try { await cancelOrder(confirmCancel, { reason:"Cancelled by customer" }); setOrders(p=>p.map(o=>o.id===confirmCancel?{...o,status:"cancelled"}:o)); }
+    catch (err) { alert(err.message); } finally { setCancelling(null); }
   };
-
   if (!user) return <div className="profile-page"><p>Please log in.</p></div>;
-
+  const filtered = tab==="orders" ? orders.filter(o=>!["delivered","cancelled"].includes(o.status)) : tab==="history" ? orders.filter(o=>["delivered","cancelled"].includes(o.status)) : [];
   return (
     <div className="profile-page">
-      <div className="profile-header">
-        <div className="profile-avatar">{user.name.charAt(0).toUpperCase()}</div>
-        <div>
-          <h1>{user.name}</h1>
-          <p>{user.email}</p>
-          <p>{user.phone_number}</p>
-        </div>
+      {confirmCancel && <ConfirmDialog title="Cancel Order" message="Are you sure you want to cancel this order?" onConfirm={handleCancel} onCancel={() => setConfirmCancel(null)} confirmLabel="Cancel Order" danger />}
+      <div className="profile-head">
+        <div className="profile-av">{user.name.charAt(0).toUpperCase()}</div>
+        <div><h1>{user.name}</h1><p>{user.email}</p><p>{user.phone_number}</p></div>
       </div>
-
       <div className="profile-tabs">
-        {["orders", "history", "settings"].map((t) => (
-          <button key={t} className={`profile-tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-            {t === "orders" ? "My Orders" : t === "history" ? "Order History" : "Settings"}
-          </button>
-        ))}
+        {["orders","history","settings"].map(t=><button key={t} className={`p-tab ${tab===t?"active":""}`} onClick={() => setTab(t)}>{t==="orders"?"My Orders":t==="history"?"History":"Settings"}</button>)}
       </div>
-
-      {(tab === "orders" || tab === "history") && (
+      {tab !== "settings" && (
         <div className="orders-list">
-          {loading ? (
-            <div className="loading-state">Loading your orders...</div>
-          ) : orders.length === 0 ? (
-            <div className="empty-state">
-              <span>🎂</span>
-              <p>No orders yet!</p>
-            </div>
-          ) : (
-            orders
-              .filter((o) => tab === "history" ? o.status === "delivered" || o.status === "cancelled" : o.status !== "delivered" && o.status !== "cancelled")
-              .map((order) => {
-                const s = STATUS_LABELS[order.status] || STATUS_LABELS.order_received;
-                return (
-                  <div key={order.id} className="order-card">
-                    <div className="order-card-header">
-                      <div>
-                        <span className="order-id">Order #{order.id}</span>
-                        <span className="order-date">{new Date(order.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <span className="order-status" style={{ color: s.color }}>
-                        {s.icon} {s.label}
-                      </span>
-                    </div>
-
-                    <div className="order-items">
-                      {order.items?.map((item) => (
-                        <div key={item.id} className="order-item">
-                          <span>{item.cake_name} × {item.quantity}</span>
-                          <span>KES {(item.price_at_time * item.quantity).toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="order-financials">
-                      <div className="fin-row">
-                        <span>Total</span>
-                        <span>KES {parseFloat(order.total_price).toLocaleString()}</span>
-                      </div>
-                      <div className="fin-row">
-                        <span>Deposit</span>
-                        <span style={{ color: order.deposit_paid ? "#10b981" : "#ef4444" }}>
-                          {order.deposit_paid ? "✓ Paid" : "⏳ Pending"} — KES {parseFloat(order.deposit_required).toLocaleString()}
-                        </span>
-                      </div>
-                      {order.deposit_paid && !order.balance_paid && (
-                        <div className="fin-row">
-                          <span>Balance Due</span>
-                          <span style={{ color: "#f59e0b" }}>KES {parseFloat(order.balance_due || 0).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {order.delivery_date && (
-                      <p className="order-delivery">📅 Delivery: {new Date(order.delivery_date).toLocaleDateString()}</p>
-                    )}
-
-                    {order.status === "order_received" && !order.deposit_paid && (
-                      <button className="cancel-btn" onClick={() => handleCancel(order.id)} disabled={cancelling === order.id}>
-                        {cancelling === order.id ? "Cancelling..." : "Cancel Order"}
-                      </button>
-                    )}
+          {loading ? <div className="dots-loader"><span/><span/><span/></div> : filtered.length===0 ? <div className="a-empty"><p>No orders here yet</p></div> : filtered.map(order => {
+            const s = S[order.status] || S.order_received;
+            return (
+              <div key={order.id} className="order-card">
+                <div className="order-card-top">
+                  <div><span className="order-id-txt">Order #{order.id}</span><span className="order-date-txt">· {new Date(order.created_at).toLocaleDateString()}</span></div>
+                  <span className="order-status-txt" style={{color:s.color,background:s.bg}}>{s.label}</span>
+                </div>
+                <div className="order-body">
+                  <div className="order-items-rows">{order.items?.map(i=><div key={i.id} className="order-item-line"><span>{i.cake_name} ×{i.quantity}</span><span>KES {(i.price_at_time*i.quantity).toLocaleString()}</span></div>)}</div>
+                  <div className="order-fin-grid">
+                    <div className="fin-item"><div className="fin-item-label">Total</div><div className="fin-item-val">KES {parseFloat(order.total_price).toLocaleString()}</div></div>
+                    <div className="fin-item"><div className="fin-item-label">Deposit</div><div className="fin-item-val" style={{color:order.deposit_paid?"#059669":"#dc2626"}}>{order.deposit_paid?"✓ Paid":"⏳ Pending"}</div></div>
                   </div>
-                );
-              })
-          )}
+                  {order.status==="order_received" && !order.deposit_paid && <button className="cancel-btn" onClick={() => setConfirmCancel(order.id)} disabled={cancelling===order.id}>{cancelling===order.id?"Cancelling…":"Cancel Order"}</button>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
-
-      {tab === "settings" && (
-        <div className="settings-panel">
-          <h2>Account Details</h2>
-          <div className="settings-info">
-            <div className="setting-row"><label>Name</label><span>{user.name}</span></div>
-            <div className="setting-row"><label>Email</label><span>{user.email}</span></div>
-            <div className="setting-row"><label>Phone</label><span>{user.phone_number}</span></div>
-            <div className="setting-row"><label>Account Type</label><span>{user.role}</span></div>
-          </div>
+      {tab==="settings" && (
+        <div className="settings-block">
+          {[["Name",user.name],["Email",user.email],["Phone",user.phone_number],["Account",user.role]].map(([l,v])=><div key={l} className="settings-row"><label>{l}</label><span>{v}</span></div>)}
         </div>
       )}
     </div>
