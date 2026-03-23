@@ -32,7 +32,7 @@ export default function CartModal({ onClose, onLoginNeeded }) {
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <h2>Order Placed!</h2>
-        <p>An M-Pesa prompt has been sent to <strong>{phone}</strong>. Enter your PIN to pay <strong>KES {deposit.toLocaleString()}</strong>.</p>
+        <p>An M-Pesa prompt has been sent to <strong>{phone}</strong>. Enter your PIN to complete the transaction</p>
         <p className="success-note">You'll receive an SMS confirmation once payment is confirmed.</p>
         <button className="btn-pink full" onClick={onClose}>Done</button>
       </div>

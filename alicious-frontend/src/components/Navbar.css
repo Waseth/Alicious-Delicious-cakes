@@ -56,7 +56,6 @@
 }
 .user-avatar:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(236,72,153,0.3); }
 
-/* Mobile top bar */
 .mobile-topbar {
   position: sticky; top: 0; z-index: 100;
   background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
@@ -65,7 +64,6 @@
   display: flex; justify-content: space-between; align-items: center;
 }
 
-/* Bottom Nav */
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
   background: rgba(255,255,255,0.97); backdrop-filter: blur(12px);
@@ -86,7 +84,6 @@
 .bottom-nav-icon { font-size: 1.3rem; }
 .bottom-nav-label { font-size: 0.7rem; font-weight: 600; }
 
-/* Spacing for bottom nav */
 @media (max-width: 768px) {
   body { padding-bottom: 80px; }
 }

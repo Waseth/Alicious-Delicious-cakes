@@ -294,7 +294,9 @@ export default function AdminPanel() {
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-icon">🎂</span>
+          <div className="nav-logo-img">
+            <span className="nav-logo-img-placeholder"><img src="logo.png" alt="" /></span>
+          </div>
           <div><div className="admin-brand-name">Alicious Delicious</div><div className="admin-brand-sub">Admin Panel</div></div>
         </div>
         <div className="admin-user-chip">

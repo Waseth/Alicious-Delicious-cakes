@@ -27,7 +27,7 @@ export default function CartDrawer() {
       const order = orderData.data;
       // Trigger STK push
       await payDeposit({ order_id: order.id, phone_number: phone });
-      setSuccess(`✅ M-Pesa prompt sent to ${phone}. Enter your PIN to pay KES ${deposit.toLocaleString()} deposit.`);
+      setSuccess(`M-Pesa prompt sent to ${phone}. Enter your PIN to pay Ksh${deposit.toLocaleString()} deposit.`);
       setStep("cart");
       clearCart();
     } catch (err) {
@@ -128,7 +128,7 @@ export default function CartDrawer() {
                       </button>
                     </div>
                     <p className="payment-note">
-                      📱 You will receive an M-Pesa STK push. Enter your PIN to confirm. 
+                      📱 You will receive an M-Pesa STK push. Enter your PIN to confirm.
                       You will NOT enter your PIN on this website.
                     </p>
                   </div>

@@ -17,7 +17,7 @@ export default function Navbar({ onLoginClick, onCartClick }) {
       <nav className="navbar">
         <Link to="/" className="nav-logo">
           <div className="nav-logo-img">
-            <span className="nav-logo-img-placeholder">🎂</span>
+            <span className="nav-logo-img-placeholder"><img src="logo.png" alt="" /></span>
           </div>
           <span className="nav-logo-text">Alicious Delicious</span>
         </Link>

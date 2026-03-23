@@ -88,7 +88,10 @@ export default function CakesPage() {
 
       <footer className="footer">
         <div className="footer-inner">
-          <div className="footer-brand"><span>🎂</span><span>Alicious Delicious Cakes</span></div>
+          <div className="nav-logo-img">
+            <span className="nav-logo-img-placeholder"><img src="logo.png" alt="" /></span>
+          </div>
+          <div className="footer-brand"><span>Alicious Delicious Cakes</span></div>
           <p className="footer-credit">© {new Date().getFullYear()} Alicious Delicious Cakes. All rights reserved.</p>
           <div className="footer-links">
             <Link to="/">Home</Link>

@@ -27,7 +27,7 @@ function AppInner() {
   if (loading) return (
     <div className="splash">
       <div className="splash-inner">
-        <span className="splash-emoji">🎂</span>
+        <span className="splash-emoji"><img src="logo.png" alt="logo" /></span>
         <p className="splash-title">Alicious Delicious</p>
         <div className="splash-bar"><div className="splash-fill" /></div>
       </div>
